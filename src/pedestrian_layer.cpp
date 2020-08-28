@@ -1,30 +1,31 @@
 #include <pluginlib/class_list_macros.h>
 #include <pedestrian_layers/pedestrian_layer.h>
 
-PLUGINLIB_EXPORT_CLASS(pedestrian_layer_namespace::SimpleLayer, costmap_2d::Layer)
+PLUGINLIB_EXPORT_CLASS(pedestrian_layer_namespace::PedestrianLayer, costmap_2d::Layer)
 
 using costmap_2d::LETHAL_OBSTACLE;
 
 namespace pedestrian_layer_namespace {
 
-SimpleLayer::SimpleLayer() {}
+PedestrianLayer::PedestrianLayer() {}
 
-void SimpleLayer::onInitialize() {
+void PedestrianLayer::onInitialize() {
   ros::NodeHandle nh("~/" + name_);
   current_ = true;
 
   dsrv_ = new dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>(nh);
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>::CallbackType
-      cb = boost::bind(&SimpleLayer::reconfigureCB, this, _1, _2);
+      cb = boost::bind(&PedestrianLayer::reconfigureCB, this, _1, _2);
   dsrv_->setCallback(cb);
 }
 
-void SimpleLayer::reconfigureCB(costmap_2d::GenericPluginConfig &config,
+
+void PedestrianLayer::reconfigureCB(costmap_2d::GenericPluginConfig &config,
                                 uint32_t level) {
   enabled_ = config.enabled;
 }
 
-void SimpleLayer::updateBounds(double robot_x, double robot_y, double robot_yaw,
+void PedestrianLayer::updateBounds(double robot_x, double robot_y, double robot_yaw,
                                double *min_x, double *min_y, double *max_x,
                                double *max_y) {
   if (!enabled_) return;
@@ -38,7 +39,7 @@ void SimpleLayer::updateBounds(double robot_x, double robot_y, double robot_yaw,
   *max_y = std::max(*max_y, mark_y_);
 }
 
-void SimpleLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
+void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
                               int min_j, int max_i, int max_j) {
   if (!enabled_) return;
 

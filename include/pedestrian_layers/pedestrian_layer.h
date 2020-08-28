@@ -8,9 +8,9 @@
 
 namespace pedestrian_layer_namespace {
 
-class SimpleLayer : public costmap_2d::Layer {
+class PedestrianLayer : public costmap_2d::Layer {
  public:
-  SimpleLayer();
+  PedestrianLayer();
 
   virtual void onInitialize();
   virtual void updateBounds(double robot_x, double robot_y, double robot_yaw,
