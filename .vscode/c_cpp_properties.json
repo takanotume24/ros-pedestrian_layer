@@ -8,7 +8,7 @@
             "includePath": [
                 "/home/takuya/catkin_ws/devel/include/**",
                 "/opt/ros/melodic/include/**",
-                "/home/takuya/catkin_ws/src/simple_layers/include/**",
+                "/home/takuya/catkin_ws/src/pedestrian_layers/include/**",
                 "/home/takuya/catkin_ws/src/turtlebot3/turtlebot3_slam/include/**",
                 "/home/takuya/catkin_ws/src/joystick_drivers/wiimote/include/**",
                 "/usr/include/**"

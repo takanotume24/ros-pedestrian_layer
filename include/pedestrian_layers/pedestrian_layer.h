@@ -6,7 +6,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <ros/ros.h>
 
-namespace simple_layer_namespace {
+namespace pedestrian_layer_namespace {
 
 class SimpleLayer : public costmap_2d::Layer {
  public:
@@ -25,5 +25,5 @@ class SimpleLayer : public costmap_2d::Layer {
   double mark_x_, mark_y_;
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>* dsrv_;
 };
-}  // namespace simple_layer_namespace
+}  // namespace pedestrian_layer_namespace
 #endif

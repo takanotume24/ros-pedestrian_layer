@@ -1,11 +1,11 @@
 #include <pluginlib/class_list_macros.h>
-#include <simple_layers/simple_layer.h>
+#include <pedestrian_layers/pedestrian_layer.h>
 
-PLUGINLIB_EXPORT_CLASS(simple_layer_namespace::SimpleLayer, costmap_2d::Layer)
+PLUGINLIB_EXPORT_CLASS(pedestrian_layer_namespace::SimpleLayer, costmap_2d::Layer)
 
 using costmap_2d::LETHAL_OBSTACLE;
 
-namespace simple_layer_namespace {
+namespace pedestrian_layer_namespace {
 
 SimpleLayer::SimpleLayer() {}
 
@@ -52,4 +52,4 @@ void SimpleLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
   }
 }
 
-}  // namespace simple_layer_namespace
+}  // namespace pedestrian_layer_namespace
