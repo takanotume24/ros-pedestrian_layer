@@ -1,6 +1,7 @@
 #include <pedestrian_layers/pedestrian_layer.h>
 #include <pedsim_msgs/AgentStates.h>
 #include <pluginlib/class_list_macros.h>
+#include "std_msgs/String.h"
 
 PLUGINLIB_EXPORT_CLASS(pedestrian_layer_namespace::PedestrianLayer,
                        costmap_2d::Layer)
@@ -15,7 +16,7 @@ void PedestrianLayer::onInitialize() {
   ros::NodeHandle nh("~/" + name_);
   current_ = true;
 
-  ros::Subscriber sub = nh.subscribe("/pedsim_simulator/simulated_agents", 1000,
+  ros::Subscriber sub = nh.subscribe("/pedsim_simulator/simulated_agents", 10,
                                      &PedestrianLayer::pedestrian_callback);
 
   dsrv_ = new dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>(nh);
@@ -24,9 +25,12 @@ void PedestrianLayer::onInitialize() {
   dsrv_->setCallback(cb);
 }
 
-void PedestrianLayer::pedestrian_callback(const pedsim_msgs::AgentStates &agents) {
+void PedestrianLayer::pedestrian_callback(
+    const pedsim_msgs::AgentStatesConstPtr& msg) {
+  msg->agent_states;
+}
 
-                                          }
+
 void PedestrianLayer::reconfigureCB(costmap_2d::GenericPluginConfig &config,
                                     uint32_t level) {
   enabled_ = config.enabled;
