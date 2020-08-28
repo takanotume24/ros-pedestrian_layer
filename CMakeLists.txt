@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   costmap_2d
   dynamic_reconfigure
   roscpp
+  pedsim_msgs
 )
 
 ## System dependencies are found with CMake's conventions

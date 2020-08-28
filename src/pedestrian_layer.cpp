@@ -1,7 +1,9 @@
-#include <pluginlib/class_list_macros.h>
 #include <pedestrian_layers/pedestrian_layer.h>
+#include <pedsim_msgs/AgentStates.h>
+#include <pluginlib/class_list_macros.h>
 
-PLUGINLIB_EXPORT_CLASS(pedestrian_layer_namespace::PedestrianLayer, costmap_2d::Layer)
+PLUGINLIB_EXPORT_CLASS(pedestrian_layer_namespace::PedestrianLayer,
+                       costmap_2d::Layer)
 
 using costmap_2d::LETHAL_OBSTACLE;
 
@@ -13,21 +15,27 @@ void PedestrianLayer::onInitialize() {
   ros::NodeHandle nh("~/" + name_);
   current_ = true;
 
+  ros::Subscriber sub = nh.subscribe("/pedsim_simulator/simulated_agents", 1000,
+                                     &PedestrianLayer::pedestrian_callback);
+
   dsrv_ = new dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>(nh);
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>::CallbackType
       cb = boost::bind(&PedestrianLayer::reconfigureCB, this, _1, _2);
   dsrv_->setCallback(cb);
 }
 
+void PedestrianLayer::pedestrian_callback(const pedsim_msgs::AgentStates &agents) {
 
+                                          }
 void PedestrianLayer::reconfigureCB(costmap_2d::GenericPluginConfig &config,
-                                uint32_t level) {
+                                    uint32_t level) {
   enabled_ = config.enabled;
 }
 
-void PedestrianLayer::updateBounds(double robot_x, double robot_y, double robot_yaw,
-                               double *min_x, double *min_y, double *max_x,
-                               double *max_y) {
+void PedestrianLayer::updateBounds(double robot_x, double robot_y,
+                                   double robot_yaw, double *min_x,
+                                   double *min_y, double *max_x,
+                                   double *max_y) {
   if (!enabled_) return;
 
   mark_x_ = robot_x + cos(robot_yaw);
@@ -40,7 +48,7 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y, double robot_
 }
 
 void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
-                              int min_j, int max_i, int max_j) {
+                                  int min_j, int max_i, int max_j) {
   if (!enabled_) return;
 
   unsigned int mx;

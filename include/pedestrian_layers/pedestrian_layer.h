@@ -4,6 +4,7 @@
 #include <costmap_2d/layer.h>
 #include <costmap_2d/layered_costmap.h>
 #include <dynamic_reconfigure/server.h>
+#include <pedsim_msgs/AgentStates.h>
 #include <ros/ros.h>
 
 namespace pedestrian_layer_namespace {
@@ -21,6 +22,7 @@ class PedestrianLayer : public costmap_2d::Layer {
 
  private:
   void reconfigureCB(costmap_2d::GenericPluginConfig& config, uint32_t level);
+  void pedestrian_callback(const pedsim_msgs::AgentStates& agents);
 
   double mark_x_, mark_y_;
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>* dsrv_;
