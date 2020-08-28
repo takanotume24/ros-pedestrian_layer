@@ -22,7 +22,6 @@ class PedestrianLayer : public costmap_2d::Layer {
 
  private:
   void reconfigureCB(costmap_2d::GenericPluginConfig& config, uint32_t level);
-  void pedestrian_callback(const pedsim_msgs::AgentStatesConstPtr& agents);
 
   double mark_x_, mark_y_;
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>* dsrv_;

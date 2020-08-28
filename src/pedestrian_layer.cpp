@@ -6,6 +6,11 @@
 PLUGINLIB_EXPORT_CLASS(pedestrian_layer_namespace::PedestrianLayer,
                        costmap_2d::Layer)
 
+void pedestrian_callback(
+    const pedsim_msgs::AgentStatesConstPtr& msg) {
+  msg->agent_states;
+}
+
 using costmap_2d::LETHAL_OBSTACLE;
 
 namespace pedestrian_layer_namespace {
@@ -17,7 +22,7 @@ void PedestrianLayer::onInitialize() {
   current_ = true;
 
   ros::Subscriber sub = nh.subscribe("/pedsim_simulator/simulated_agents", 10,
-                                     &PedestrianLayer::pedestrian_callback);
+                                      pedestrian_callback);
 
   dsrv_ = new dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>(nh);
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>::CallbackType
@@ -25,10 +30,6 @@ void PedestrianLayer::onInitialize() {
   dsrv_->setCallback(cb);
 }
 
-void PedestrianLayer::pedestrian_callback(
-    const pedsim_msgs::AgentStatesConstPtr& msg) {
-  msg->agent_states;
-}
 
 
 void PedestrianLayer::reconfigureCB(costmap_2d::GenericPluginConfig &config,
