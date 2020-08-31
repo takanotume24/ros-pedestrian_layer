@@ -1,11 +1,13 @@
-#ifndef SIMPLE_LAYER_H_
-#define SIMPLE_LAYER_H_
+#ifndef PEDESTRIAN_LAYER_H_
+#define PEDESTRIAN_LAYER_H_
 #include <costmap_2d/GenericPluginConfig.h>
 #include <costmap_2d/layer.h>
 #include <costmap_2d/layered_costmap.h>
 #include <dynamic_reconfigure/server.h>
 #include <pedsim_msgs/AgentStates.h>
 #include <ros/ros.h>
+#include <sensor_msgs/Imu.h>
+
 
 namespace pedestrian_layer_namespace {
 
@@ -22,8 +24,10 @@ class PedestrianLayer : public costmap_2d::Layer {
 
  private:
   void reconfigureCB(costmap_2d::GenericPluginConfig& config, uint32_t level);
+  void callback(const sensor_msgs::ImuConstPtr &msg);
 
   double mark_x_, mark_y_;
+  ros::Subscriber map_sub_;
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>* dsrv_;
 };
 }  // namespace pedestrian_layer_namespace

@@ -1,13 +1,12 @@
 #include <pedestrian_layers/pedestrian_layer.h>
 #include <pedsim_msgs/AgentStates.h>
 #include <pluginlib/class_list_macros.h>
-#include "std_msgs/String.h"
+#include <sensor_msgs/Imu.h>
 
 PLUGINLIB_EXPORT_CLASS(pedestrian_layer_namespace::PedestrianLayer,
                        costmap_2d::Layer)
 
-void pedestrian_callback(
-    const pedsim_msgs::AgentStatesConstPtr& msg) {
+void pedestrian_callback(const pedsim_msgs::AgentStatesConstPtr &msg) {
   msg->agent_states;
 }
 
@@ -17,20 +16,24 @@ namespace pedestrian_layer_namespace {
 
 PedestrianLayer::PedestrianLayer() {}
 
+void PedestrianLayer::callback(const sensor_msgs::ImuConstPtr &msg) {
+  ROS_INFO("called %f", msg->linear_acceleration.x);
+}
+
 void PedestrianLayer::onInitialize() {
-  ros::NodeHandle nh("~/" + name_);
+  ros::NodeHandle nh("~/" + name_), g_nh;
   current_ = true;
 
-  ros::Subscriber sub = nh.subscribe("/pedsim_simulator/simulated_agents", 10,
-                                      pedestrian_callback);
+  // ros::Subscriber sub = nh.subscribe("/pedsim_simulator/simulated_agents",
+  // 10,
+  //                                     pedestrian_callback);
+  map_sub_ = g_nh.subscribe("/imu", 10, &PedestrianLayer::callback, this);
 
   dsrv_ = new dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>(nh);
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>::CallbackType
       cb = boost::bind(&PedestrianLayer::reconfigureCB, this, _1, _2);
   dsrv_->setCallback(cb);
 }
-
-
 
 void PedestrianLayer::reconfigureCB(costmap_2d::GenericPluginConfig &config,
                                     uint32_t level) {
@@ -56,12 +59,13 @@ void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
                                   int min_j, int max_i, int max_j) {
   if (!enabled_) return;
 
+  ros::spinOnce();
   unsigned int mx;
   unsigned int my;
 
   if (master_grid.worldToMap(mark_x_, mark_y_, mx, my)) {
-    printf("mx: %d\tmy: %d\tmark_x_: %f\tmark_y_: %f\n", mx, my, mark_x_,
-           mark_y_);
+    ROS_INFO("mx: %d\tmy: %d\tmark_x_: %f\tmark_y_: %f", mx, my, mark_x_,
+             mark_y_);
     master_grid.setCost(mx, my, LETHAL_OBSTACLE);
   }
 }
