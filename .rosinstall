@@ -1,0 +1,4 @@
+- git:
+    local-name: pedsim_ros
+    uri: https://github.com/takanotume24/pedsim_ros.git
+    version: melodic-dev

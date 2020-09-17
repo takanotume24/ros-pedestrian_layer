@@ -7,6 +7,7 @@
 #include <pedsim_msgs/AgentStates.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
+#include <mutex>
 
 
 namespace pedestrian_layer_namespace {
@@ -24,10 +25,13 @@ class PedestrianLayer : public costmap_2d::Layer {
 
  private:
   void reconfigureCB(costmap_2d::GenericPluginConfig& config, uint32_t level);
-  void callback(const sensor_msgs::ImuConstPtr &msg);
+  void imu_callback(const sensor_msgs::ImuConstPtr &msg);
+  void pedestrian_callback(const pedsim_msgs::AgentStatesConstPtr &msg);
 
   double mark_x_, mark_y_;
-  ros::Subscriber map_sub_;
+  pedsim_msgs::AgentStates states;
+  ros::Subscriber imu_sub_, pedestrian_sub_;
+  std::mutex m;
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>* dsrv_;
 };
 }  // namespace pedestrian_layer_namespace

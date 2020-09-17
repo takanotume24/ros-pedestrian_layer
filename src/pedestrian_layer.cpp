@@ -6,18 +6,21 @@
 PLUGINLIB_EXPORT_CLASS(pedestrian_layer_namespace::PedestrianLayer,
                        costmap_2d::Layer)
 
-void pedestrian_callback(const pedsim_msgs::AgentStatesConstPtr &msg) {
-  msg->agent_states;
-}
-
 using costmap_2d::LETHAL_OBSTACLE;
 
 namespace pedestrian_layer_namespace {
 
 PedestrianLayer::PedestrianLayer() {}
 
-void PedestrianLayer::callback(const sensor_msgs::ImuConstPtr &msg) {
-  ROS_INFO("called %f", msg->linear_acceleration.x);
+void PedestrianLayer::imu_callback(const sensor_msgs::ImuConstPtr &msg) {
+  // ROS_INFO("called\t%f", msg->linear_acceleration.x);
+}
+
+void PedestrianLayer::pedestrian_callback(
+    const pedsim_msgs::AgentStatesConstPtr &msg) {
+      std::lock_guard<std::mutex> lock(m);
+      states = *msg;
+  ROS_INFO("agents:\t%d", msg->agent_states.size());
 }
 
 void PedestrianLayer::onInitialize() {
@@ -27,8 +30,9 @@ void PedestrianLayer::onInitialize() {
   // ros::Subscriber sub = nh.subscribe("/pedsim_simulator/simulated_agents",
   // 10,
   //                                     pedestrian_callback);
-  map_sub_ = g_nh.subscribe("/imu", 10, &PedestrianLayer::callback, this);
-
+  imu_sub_ = g_nh.subscribe("/imu", 10, &PedestrianLayer::imu_callback, this);
+  pedestrian_sub_ = g_nh.subscribe("/pedsim_simulator/simulated_agents", 10,
+                                   &PedestrianLayer::pedestrian_callback, this);
   dsrv_ = new dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>(nh);
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>::CallbackType
       cb = boost::bind(&PedestrianLayer::reconfigureCB, this, _1, _2);
@@ -66,7 +70,8 @@ void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
   if (master_grid.worldToMap(mark_x_, mark_y_, mx, my)) {
     ROS_INFO("mx: %d\tmy: %d\tmark_x_: %f\tmark_y_: %f", mx, my, mark_x_,
              mark_y_);
-    master_grid.setCost(mx, my, LETHAL_OBSTACLE);
+    ROS_INFO("%d", states.agent_states.at(0).twist.linear.x);
+    // master_grid.setCost(mx, my, LETHAL_OBSTACLE);
   }
 }
 
