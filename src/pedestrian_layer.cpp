@@ -14,8 +14,8 @@ PedestrianLayer::PedestrianLayer() {}
 
 void PedestrianLayer::pedestrian_callback(
     const pedsim_msgs::AgentStatesConstPtr &msg) {
-      std::lock_guard<std::mutex> lock(m);
-      states = *msg;
+  std::lock_guard<std::mutex> lock(m);
+  states = *msg;
   ROS_INFO("agents:\t%d", msg->agent_states.size());
 }
 
@@ -41,6 +41,7 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
                                    double *min_y, double *max_x,
                                    double *max_y) {
   if (!enabled_) return;
+  if (states.agent_states.size() == 0) return;
 
   mark_x_ = states.agent_states.at(0).pose.position.x;
   mark_y_ = states.agent_states.at(0).pose.position.y;
