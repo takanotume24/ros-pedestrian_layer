@@ -25,7 +25,6 @@ class PedestrianLayer : public costmap_2d::Layer {
 
  private:
   void reconfigureCB(costmap_2d::GenericPluginConfig& config, uint32_t level);
-  void imu_callback(const sensor_msgs::ImuConstPtr &msg);
   void pedestrian_callback(const pedsim_msgs::AgentStatesConstPtr &msg);
 
   double mark_x_, mark_y_;
