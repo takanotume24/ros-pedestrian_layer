@@ -16,7 +16,7 @@ void PedestrianLayer::pedestrian_callback(
     const pedsim_msgs::AgentStatesConstPtr &msg) {
   std::lock_guard<std::mutex> lock(m);
   states = *msg;
-  ROS_INFO("agents:\t%d", msg->agent_states.size());
+  // ROS_INFO("agents:\t%d", msg->agent_states.size());
 }
 
 void PedestrianLayer::onInitialize() {
@@ -43,8 +43,54 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
   if (!enabled_) return;
   if (states.agent_states.size() == 0) return;
 
-  mark_x_ = states.agent_states.at(0).pose.position.x;
-  mark_y_ = states.agent_states.at(0).pose.position.y;
+  // // TF Broadcasterの実体化
+  // tf::TransformBroadcaster robotState_broadcaster;
+
+  // // Robot位置と姿勢(x,y,yaw)の取得
+  // double x = states.agent_states.at(0).pose.position.x;
+  // double y = states.agent_states.at(0).pose.position.y;
+  // double z = states.agent_states.at(0).pose.position.z;
+
+  // // yawのデータからクォータニオンを作成
+  // geometry_msgs::Quaternion robot_quat = states.agent_states.at(0).pose.orientation;
+
+  // // robot座標系の元となるロボットの位置姿勢情報格納用変数の作成
+  // geometry_msgs::TransformStamped robotState;
+
+  // //現在の時間の格納
+  // robotState.header.stamp = ros::Time::now();
+
+  // //座標系globalとrobotの指定
+  // robotState.header.frame_id = "map";
+  // robotState.child_frame_id = "odom";
+
+  // // global座標系からみたrobot座標系の原点位置と方向の格納
+  // robotState.transform.translation.x = x;
+  // robotState.transform.translation.y = y;
+  // robotState.transform.translation.z = z;
+  // robotState.transform.rotation = robot_quat;
+
+  // // tf情報をbroadcast(座標系の設定)
+  // robotState_broadcaster.sendTransform(robotState);
+
+  geometry_msgs::PoseStamped target_pose;
+  geometry_msgs::PoseStamped source_pose;
+  source_pose.header.frame_id = "odom";
+  source_pose.header.stamp = ros::Time::now();
+  source_pose.pose.orientation.w = 1.0;
+
+  auto target_frame = "map";
+
+  try {
+    tf_listener.waitForTransform(source_pose.header.frame_id, target_frame,
+                                 source_pose.header.stamp, ros::Duration(1.0));
+    tf_listener.transformPose(target_frame, source_pose, target_pose);
+  } catch (...) {
+    ROS_INFO("tf error");
+  }
+
+  mark_x_ = target_pose.pose.position.x;
+  mark_y_ = target_pose.pose.position.y;
 
   *min_x = std::min(*min_x, mark_x_);
   *min_y = std::min(*min_y, mark_y_);
