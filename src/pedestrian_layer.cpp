@@ -60,11 +60,6 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
     ROS_ERROR(e.what());
   }
 
-  ROS_INFO("source %f, %f", source_pose.pose.position.x,
-           source_pose.pose.position.y);
-  ROS_INFO("target %f, %f", target_pose.pose.position.x,
-           target_pose.pose.position.y);
-
   mark_x_ = target_pose.pose.position.x;
   mark_y_ = target_pose.pose.position.y;
 
