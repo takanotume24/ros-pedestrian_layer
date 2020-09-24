@@ -52,7 +52,8 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
   // double z = states.agent_states.at(0).pose.position.z;
 
   // // yawのデータからクォータニオンを作成
-  // geometry_msgs::Quaternion robot_quat = states.agent_states.at(0).pose.orientation;
+  // geometry_msgs::Quaternion robot_quat =
+  // states.agent_states.at(0).pose.orientation;
 
   // // robot座標系の元となるロボットの位置姿勢情報格納用変数の作成
   // geometry_msgs::TransformStamped robotState;
@@ -77,6 +78,7 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
   geometry_msgs::PoseStamped source_pose;
   source_pose.header.frame_id = "odom";
   source_pose.header.stamp = ros::Time::now();
+  source_pose.pose = states.agent_states.at(0).pose;
   source_pose.pose.orientation.w = 1.0;
 
   auto target_frame = "map";
@@ -85,9 +87,14 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
     tf_listener.waitForTransform(source_pose.header.frame_id, target_frame,
                                  source_pose.header.stamp, ros::Duration(1.0));
     tf_listener.transformPose(target_frame, source_pose, target_pose);
-  } catch (...) {
-    ROS_INFO("tf error");
+  } catch (std::exception e) {
+    ROS_ERROR(e.what());
   }
+
+  ROS_INFO("source %f, %f", source_pose.pose.position.x,
+           source_pose.pose.position.y);
+  ROS_INFO("target %f, %f", target_pose.pose.position.x,
+           target_pose.pose.position.y);
 
   mark_x_ = target_pose.pose.position.x;
   mark_y_ = target_pose.pose.position.y;
