@@ -7,10 +7,12 @@
 #include <pedsim_msgs/AgentStates.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
-#include <mutex>
-#include "tf/transform_listener.h"
-#include "tf/transform_broadcaster.h"
 
+#include <mutex>
+#include <deque>
+
+#include "tf/transform_broadcaster.h"
+#include "tf/transform_listener.h"
 
 namespace pedestrian_layer_namespace {
 
@@ -27,10 +29,19 @@ class PedestrianLayer : public costmap_2d::Layer {
 
  private:
   void reconfigureCB(costmap_2d::GenericPluginConfig& config, uint32_t level);
-  void pedestrian_callback(const pedsim_msgs::AgentStatesConstPtr &msg);
-
+  void pedestrian_callback(const pedsim_msgs::AgentStatesConstPtr& msg);
+  void add_cost(costmap_2d::Costmap2D& master_grid,
+                const geometry_msgs::PoseStamped& pose_stamped);
+  void delete_cost(costmap_2d::Costmap2D& master_grid,
+                   const geometry_msgs::PoseStamped& pose_stamped);
+  void change_cost(
+      costmap_2d::Costmap2D& master_grid,
+      const geometry_msgs::PoseStamped& pose_stamped, const unsigned char cost);
+  
   double mark_x_, mark_y_;
   pedsim_msgs::AgentStates states;
+  std::deque<pedsim_msgs::AgentStates> states_history;
+  std::deque<geometry_msgs::PoseStamped> pose_history;
   ros::Subscriber imu_sub_, pedestrian_sub_;
   std::mutex m;
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>* dsrv_;

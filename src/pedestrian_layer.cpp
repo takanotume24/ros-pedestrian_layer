@@ -7,6 +7,7 @@ PLUGINLIB_EXPORT_CLASS(pedestrian_layer_namespace::PedestrianLayer,
                        costmap_2d::Layer)
 
 using costmap_2d::LETHAL_OBSTACLE;
+using costmap_2d::FREE_SPACE;
 
 namespace pedestrian_layer_namespace {
 
@@ -60,6 +61,8 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
     ROS_ERROR(e.what());
   }
 
+  pose_history.push_back(target_pose);
+
   mark_x_ = target_pose.pose.position.x;
   mark_y_ = target_pose.pose.position.y;
 
@@ -69,23 +72,52 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
   *max_y = std::max(*max_y, mark_y_);
 }
 
-void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
-                                  int min_j, int max_i, int max_j) {
-  if (!enabled_) return;
-
-  ros::spinOnce();
+void PedestrianLayer::change_cost(costmap_2d::Costmap2D &master_grid, const geometry_msgs::PoseStamped &pose_stamped, const unsigned char cost){
   unsigned int mx;
   unsigned int my;
 
   auto radius = 10;
 
-  if (master_grid.worldToMap(mark_x_, mark_y_, mx, my)) {
-    for (int i = 0; i < radius; i++) {
-      for (int j = 0; j < radius; j++) {
-        master_grid.setCost(mx + i - radius / 2, my + j - radius / 2,
-                            LETHAL_OBSTACLE);
-      }
+  mark_x_ = pose_stamped.pose.position.x;
+  mark_y_ = pose_stamped.pose.position.y;
+
+  if (!master_grid.worldToMap(mark_x_, mark_y_, mx, my)) return;
+
+  for (int i = 0; i < radius; i++) {
+    for (int j = 0; j < radius; j++) {
+      master_grid.setCost(mx + i - radius / 2, my + j - radius / 2,
+                          cost);
     }
+  }
+}
+
+void PedestrianLayer::add_cost(
+    costmap_2d::Costmap2D &master_grid,
+    const geometry_msgs::PoseStamped &pose_stamped) {
+      change_cost(master_grid, pose_stamped, LETHAL_OBSTACLE);
+}
+
+
+void PedestrianLayer::delete_cost(
+    costmap_2d::Costmap2D &master_grid,
+    const geometry_msgs::PoseStamped &pose_stamped) {
+      change_cost(master_grid, pose_stamped, FREE_SPACE);
+}
+
+void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
+                                  int min_j, int max_i, int max_j) {
+  if (!enabled_) return;
+
+  ros::spinOnce();
+
+  for (const auto &iter : pose_history) {
+    ROS_INFO("size: %d\t%f\t%f",pose_history.size(),iter.pose.position.x, iter.pose.position.y);
+    add_cost(master_grid, iter);
+  }
+
+  if (pose_history.size() > 5) {
+    delete_cost(master_grid, pose_history.front());
+    pose_history.pop_front();
   }
 }
 
