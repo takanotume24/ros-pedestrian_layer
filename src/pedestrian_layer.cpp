@@ -76,7 +76,6 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
 void PedestrianLayer::change_cost(
     costmap_2d::Costmap2D &master_grid,
     const geometry_msgs::PoseStamped &pose_stamped, const unsigned char &cost) {
-
   unsigned int mx;
   unsigned int my;
 
@@ -90,15 +89,17 @@ void PedestrianLayer::change_cost(
     return;
   }
 
-  ROS_INFO("mx = %d,\tmy = %d", mx, my);
-  
+  // ROS_INFO("mx = %d,\tmy = %d", mx, my);
+
   for (int i = 0; i < radius; i++) {
     for (int j = 0; j < radius; j++) {
-      auto x = mx + i - radius / 2;
-      auto y = my + j - radius / 2;
-      
-      if(x < 0) return;
-      if(y < 0) return;
+      int x = mx + i - radius / 2;
+      int y = my + j - radius / 2;
+
+      if (x < 0 || master_grid.getSizeInCellsX() < x) continue;
+      if (y < 0 || master_grid.getSizeInCellsY() < y) continue;
+
+      ROS_INFO("x = %d, y = %d", x, y);
 
       master_grid.setCost(x, y, cost);
     }
@@ -114,6 +115,8 @@ void PedestrianLayer::delete_cost(
     costmap_2d::Costmap2D &master_grid,
     const geometry_msgs::PoseStamped &pose_stamped) {
   change_cost(master_grid, pose_stamped, FREE_SPACE);
+  ROS_INFO("cleard -> x:%f, y:%f", pose_stamped.pose.position.x,
+           pose_stamped.pose.position.y);
 }
 
 void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
@@ -123,14 +126,14 @@ void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
 
   ros::spinOnce();
 
-  auto result =
-      std::remove_if(pose_history.begin(), pose_history.end(),
-                     [](geometry_msgs::PoseStamped x) {
-                       return (ros::Time::now() - x.header.stamp).toSec() > 1.0;
-                     });
+  auto result = std::remove_if(pose_history.begin(), pose_history.end(),
+                               [](geometry_msgs::PoseStamped x) {
+                                 auto diff = ros::Time::now() - x.header.stamp;
+                                 return diff.toSec() > 1.0;
+                               });
 
   for (auto iter = result, last = pose_history.end(); iter != last; ++iter) {
-    // delete_cost(master_grid, *iter);
+    delete_cost(master_grid, *iter);
     ROS_INFO("deleted: %f", (ros::Time::now() - (*iter).header.stamp).toSec());
     ROS_INFO("deleted: %d", (*iter).header.seq);
   }
