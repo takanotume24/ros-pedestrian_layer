@@ -56,7 +56,7 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
                                  source_pose.header.stamp, ros::Duration(1.0));
     tf_listener.transformPose(target_frame, source_pose, target_pose);
   } catch (std::exception e) {
-    ROS_ERROR(e.what());
+    ROS_ERROR("%s", e.what());
   }
 
   pose_history.push_back(target_pose);
@@ -66,7 +66,7 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
 
   *min_x = std::min(*min_x, 0.0);
   *min_y = std::min(*min_y, 0.0);
-  *max_x = std::max(*max_x, 10000.0); //最大に設定する。
+  *max_x = std::max(*max_x, 10000.0);  //最大に設定する。
   *max_y = std::max(*max_y, 10000.0);
 }
 
@@ -82,7 +82,7 @@ void PedestrianLayer::change_cost(
   mark_y_ = pose_stamped.pose.position.y;
 
   if (!master_grid.worldToMap(mark_x_, mark_y_, mx, my)) {
-    ROS_ERROR("Skiped");
+    ROS_DEBUG("Skiped");
     return;
   }
 
@@ -131,9 +131,26 @@ void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
 
   pose_history.erase(result, pose_history.end());
 
+  auto diff_x = pose_history.end()->pose.position.x -
+                pose_history.begin()->pose.position.x;
+  auto diff_y = pose_history.end()->pose.position.y -
+                pose_history.begin()->pose.position.y;
+
+  std::deque<geometry_msgs::PoseStamped> predict_deque;
+
   for (const auto &iter : pose_history) {
-    // ROS_INFO("size: %d\t%f\t%f", pose_history.size(), iter.pose.position.x,
-    //          iter.pose.position.y);
+    auto pose = iter;
+    pose.pose.position.x += diff_x;
+    pose.pose.position.y += diff_y;
+    predict_deque.push_back(pose);
+  }
+
+  ROS_INFO("%d", pose_history.size());
+
+  for (const auto &iter : pose_history) {
+    add_cost(master_grid, iter);
+  }
+  for (const auto &iter : predict_deque) {
     add_cost(master_grid, iter);
   }
 }
