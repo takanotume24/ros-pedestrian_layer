@@ -76,6 +76,7 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
 void PedestrianLayer::change_cost(
     costmap_2d::Costmap2D &master_grid,
     const geometry_msgs::PoseStamped &pose_stamped, const unsigned char &cost) {
+
   unsigned int mx;
   unsigned int my;
 
@@ -93,7 +94,13 @@ void PedestrianLayer::change_cost(
   
   for (int i = 0; i < radius; i++) {
     for (int j = 0; j < radius; j++) {
-      master_grid.setCost(mx + i - radius / 2, my + j - radius / 2, cost);
+      auto x = mx + i - radius / 2;
+      auto y = my + j - radius / 2;
+      
+      if(x < 0) return;
+      if(y < 0) return;
+
+      master_grid.setCost(x, y, cost);
     }
   }
 }
@@ -112,6 +119,7 @@ void PedestrianLayer::delete_cost(
 void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
                                   int min_j, int max_i, int max_j) {
   if (!enabled_) return;
+  if (pose_history.size() == 0) return;
 
   ros::spinOnce();
 
