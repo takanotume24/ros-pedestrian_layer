@@ -1,7 +1,4 @@
 #include <pedestrian_layers/pedestrian_layer.h>
-#include <pedsim_msgs/AgentStates.h>
-#include <pluginlib/class_list_macros.h>
-#include <sensor_msgs/Imu.h>
 
 PLUGINLIB_EXPORT_CLASS(pedestrian_layer_namespace::PedestrianLayer,
                        costmap_2d::Layer)
@@ -130,8 +127,6 @@ void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
 
   for (auto iter = result, last = pose_history.end(); iter != last; ++iter) {
     delete_cost(master_grid, *iter);
-    ROS_INFO("deleted: %f", (ros::Time::now() - (*iter).header.stamp).toSec());
-    ROS_INFO("deleted: %d", (*iter).header.seq);
   }
 
   pose_history.erase(result, pose_history.end());

@@ -7,7 +7,11 @@
 #include <pedsim_msgs/AgentStates.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
+#include <pedsim_msgs/AgentStates.h>
+#include <pluginlib/class_list_macros.h>
+#include <sensor_msgs/Imu.h>
 
+#include <map>
 #include <mutex>
 #include <deque>
 
