@@ -36,7 +36,7 @@ class PedestrianLayer : public costmap_2d::Layer {
                    const geometry_msgs::PoseStamped& pose_stamped);
   void change_cost(
       costmap_2d::Costmap2D& master_grid,
-      const geometry_msgs::PoseStamped& pose_stamped, const unsigned char cost);
+      const geometry_msgs::PoseStamped& pose_stamped, const unsigned char& cost);
   
   double mark_x_, mark_y_;
   pedsim_msgs::AgentStates states;
