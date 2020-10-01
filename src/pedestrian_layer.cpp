@@ -67,10 +67,10 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
   mark_x_ = target_pose.pose.position.x;
   mark_y_ = target_pose.pose.position.y;
 
-  *min_x = std::min(*min_x, mark_x_);
-  *min_y = std::min(*min_y, mark_y_);
-  *max_x = std::max(*max_x, mark_x_);
-  *max_y = std::max(*max_y, mark_y_);
+  *min_x = std::min(*min_x, 0.0);
+  *min_y = std::min(*min_y, 0.0);
+  *max_x = std::max(*max_x, 10000.0); //最大に設定する。
+  *max_y = std::max(*max_y, 10000.0);
 }
 
 void PedestrianLayer::change_cost(
@@ -99,8 +99,6 @@ void PedestrianLayer::change_cost(
       if (x < 0 || master_grid.getSizeInCellsX() < x) continue;
       if (y < 0 || master_grid.getSizeInCellsY() < y) continue;
 
-      ROS_INFO("x = %d, y = %d", x, y);
-
       master_grid.setCost(x, y, cost);
     }
   }
@@ -114,9 +112,7 @@ void PedestrianLayer::add_cost(costmap_2d::Costmap2D &master_grid,
 void PedestrianLayer::delete_cost(
     costmap_2d::Costmap2D &master_grid,
     const geometry_msgs::PoseStamped &pose_stamped) {
-  change_cost(master_grid, pose_stamped, FREE_SPACE);
-  ROS_INFO("cleard -> x:%f, y:%f", pose_stamped.pose.position.x,
-           pose_stamped.pose.position.y);
+  change_cost(master_grid, pose_stamped, costmap_2d::FREE_SPACE);
 }
 
 void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
