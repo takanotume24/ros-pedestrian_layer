@@ -89,6 +89,8 @@ void PedestrianLayer::change_cost(
     return;
   }
 
+  ROS_INFO("mx = %d,\tmy = %d", mx, my);
+  
   for (int i = 0; i < radius; i++) {
     for (int j = 0; j < radius; j++) {
       master_grid.setCost(mx + i - radius / 2, my + j - radius / 2, cost);
@@ -120,7 +122,7 @@ void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
                      });
 
   for (auto iter = result, last = pose_history.end(); iter != last; ++iter) {
-    delete_cost(master_grid, *iter);
+    // delete_cost(master_grid, *iter);
     ROS_INFO("deleted: %f", (ros::Time::now() - (*iter).header.stamp).toSec());
     ROS_INFO("deleted: %d", (*iter).header.seq);
   }
