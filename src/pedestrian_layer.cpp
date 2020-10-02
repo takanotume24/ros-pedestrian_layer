@@ -39,6 +39,8 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
                                    double robot_yaw, double *min_x,
                                    double *min_y, double *max_x,
                                    double *max_y) {
+  std::lock_guard<std::mutex> lock(m);
+
   if (!enabled_) return;
   if (states.agent_states.size() == 0) return;
 
@@ -51,13 +53,11 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
     return;
   }
 
-  for (auto agent_state = states.agent_states.begin(),
-            last = states.agent_states.end();
-       agent_state != last; ++agent_state) {
+  for (const auto &agent_state : states.agent_states) {
     geometry_msgs::PoseStamped target_pose;
     geometry_msgs::PoseStamped source_pose;
-    source_pose.header = (*agent_state).header;
-    source_pose.pose = (*agent_state).pose;
+    source_pose.header = agent_state.header;
+    source_pose.pose = agent_state.pose;
     source_pose.pose.orientation.w = 1.0;
 
     auto target_frame = "map";
@@ -71,7 +71,7 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
       ROS_ERROR("%s", e.what());
     }
 
-    pose_histories[(*agent_state).id].push_back(target_pose);
+    pose_histories[agent_state.id].push_back(target_pose);
 
     *min_x = std::min(*min_x, target_pose.pose.position.x);
     *min_y = std::min(*min_y, target_pose.pose.position.y);
@@ -110,8 +110,8 @@ inline void PedestrianLayer::change_cost(
       int x = mx + i - radius / 2;
       int y = my + j - radius / 2;
 
-      if (x < 0 ) continue;
-      if (y < 0 ) continue;
+      if (x < 0) continue;
+      if (y < 0) continue;
 
       master_grid.setCost(x, y, cost);
     }
@@ -135,10 +135,8 @@ void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
   if (!enabled_) return;
   if (pose_histories.size() == 0) return;
 
-  ros::spinOnce();
-
   for (auto &pose_history_map : pose_histories) {
-    auto & pose_history = pose_history_map.second;
+    auto &pose_history = pose_history_map.second;
 
     auto result = std::remove_if(pose_history.begin(), pose_history.end(),
                                  [](geometry_msgs::PoseStamped x) {
@@ -149,8 +147,8 @@ void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
                                    return diff.toSec() > capture_sec;
                                  });
 
-    for (auto iter = result, last = pose_history.end(); iter != last; ++iter) {
-      delete_cost(master_grid, *iter);
+    for (const auto &iter : pose_history) {
+      delete_cost(master_grid, iter);
     }
 
     pose_history.erase(result, pose_history.end());
