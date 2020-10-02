@@ -44,14 +44,12 @@ class PedestrianLayer : public costmap_2d::CostmapLayer {
       const geometry_msgs::PoseStamped& pose_stamped, const unsigned char& cost);
   
   bool min_max_initialized_;
-  pedsim_msgs::AgentStates states;
-  std::deque<pedsim_msgs::AgentStates> states_history;
-  std::map<uint32_t, std::deque<geometry_msgs::PoseStamped>> pose_histories;
+  pedsim_msgs::AgentStates states_;
+  std::map<uint32_t, std::deque<geometry_msgs::PoseStamped>> pose_histories_;
   ros::Subscriber imu_sub_, pedestrian_sub_;
-  std::mutex m;
+  std::mutex m_;
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>* dsrv_;
-  tf::TransformListener tf_listener;
-  tf::TransformListener ln;
+  tf::TransformListener tf_listener_;
 };
 }  // namespace pedestrian_layer_namespace
 #endif

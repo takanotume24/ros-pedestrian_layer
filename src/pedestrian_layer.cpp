@@ -12,8 +12,8 @@ PedestrianLayer::PedestrianLayer() {}
 
 void PedestrianLayer::pedestrian_callback(
     const pedsim_msgs::AgentStatesConstPtr &msg) {
-  std::lock_guard<std::mutex> lock(m);
-  states = *msg;
+  std::lock_guard<std::mutex> lock(m_);
+  states_ = *msg;
   // ROS_INFO("agents:\t%d", msg->agent_states.size());
 }
 
@@ -39,10 +39,10 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
                                    double robot_yaw, double *min_x,
                                    double *min_y, double *max_x,
                                    double *max_y) {
-  std::lock_guard<std::mutex> lock(m);
+  std::lock_guard<std::mutex> lock(m_);
 
   if (!enabled_) return;
-  if (states.agent_states.size() == 0) return;
+  if (states_.agent_states.size() == 0) return;
 
   if (!min_max_initialized_) {
     *min_x = 0.0;
@@ -53,7 +53,7 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
     return;
   }
 
-  for (const auto &agent_state : states.agent_states) {
+  for (const auto &agent_state : states_.agent_states) {
     geometry_msgs::PoseStamped target_pose;
     geometry_msgs::PoseStamped source_pose;
     source_pose.header = agent_state.header;
@@ -63,15 +63,15 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
     auto target_frame = "map";
 
     try {
-      tf_listener.waitForTransform(source_pose.header.frame_id, target_frame,
+      tf_listener_.waitForTransform(source_pose.header.frame_id, target_frame,
                                    source_pose.header.stamp,
                                    ros::Duration(1.0));
-      tf_listener.transformPose(target_frame, source_pose, target_pose);
+      tf_listener_.transformPose(target_frame, source_pose, target_pose);
     } catch (std::exception e) {
       ROS_ERROR("%s", e.what());
     }
 
-    pose_histories[agent_state.id].push_back(target_pose);
+    pose_histories_[agent_state.id].push_back(target_pose);
 
     *min_x = std::min(*min_x, target_pose.pose.position.x);
     *min_y = std::min(*min_y, target_pose.pose.position.y);
@@ -112,7 +112,7 @@ inline void PedestrianLayer::change_cost(
 
       if (x < 0) continue;
       if (y < 0) continue;
-
+      
       master_grid.setCost(x, y, cost);
     }
   }
@@ -133,9 +133,9 @@ inline void PedestrianLayer::delete_cost(
 void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
                                   int min_j, int max_i, int max_j) {
   if (!enabled_) return;
-  if (pose_histories.size() == 0) return;
+  if (pose_histories_.size() == 0) return;
 
-  for (auto &pose_history_map : pose_histories) {
+  for (auto &pose_history_map : pose_histories_) {
     auto &pose_history = pose_history_map.second;
 
     auto result = std::remove_if(pose_history.begin(), pose_history.end(),
