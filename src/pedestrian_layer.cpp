@@ -27,6 +27,7 @@ void PedestrianLayer::onInitialize() {
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>::CallbackType
       cb = boost::bind(&PedestrianLayer::reconfigureCB, this, _1, _2);
   dsrv_->setCallback(cb);
+  min_max_initialized_ = false;
 }
 
 void PedestrianLayer::reconfigureCB(costmap_2d::GenericPluginConfig &config,
@@ -41,48 +42,64 @@ void PedestrianLayer::updateBounds(double robot_x, double robot_y,
   if (!enabled_) return;
   if (states.agent_states.size() == 0) return;
 
-  geometry_msgs::PoseStamped target_pose;
-  geometry_msgs::PoseStamped source_pose;
-  source_pose.header.frame_id = "odom";
-  source_pose.header.stamp = states.agent_states.at(0).header.stamp;
-  source_pose.header.seq = states.agent_states.at(0).header.seq;
-  source_pose.pose = states.agent_states.at(0).pose;
-  source_pose.pose.orientation.w = 1.0;
-
-  auto target_frame = "map";
-
-  try {
-    tf_listener.waitForTransform(source_pose.header.frame_id, target_frame,
-                                 source_pose.header.stamp, ros::Duration(1.0));
-    tf_listener.transformPose(target_frame, source_pose, target_pose);
-  } catch (std::exception e) {
-    ROS_ERROR("%s", e.what());
+  if (!min_max_initialized_) {
+    *min_x = 0.0;
+    *min_y = 0.0;
+    *max_x = 10000.0;
+    *max_y = 10000.0;
+    min_max_initialized_ = true;
+    return;
   }
 
-  pose_history.push_back(target_pose);
+  for (auto agent_state = states.agent_states.begin(),
+            last = states.agent_states.end();
+       agent_state != last; ++agent_state) {
+    geometry_msgs::PoseStamped target_pose;
+    geometry_msgs::PoseStamped source_pose;
+    source_pose.header = (*agent_state).header;
+    source_pose.pose = (*agent_state).pose;
+    source_pose.pose.orientation.w = 1.0;
 
-  mark_x_ = target_pose.pose.position.x;
-  mark_y_ = target_pose.pose.position.y;
+    auto target_frame = "map";
 
-  *min_x = std::min(*min_x, 0.0);
-  *min_y = std::min(*min_y, 0.0);
-  *max_x = std::max(*max_x, 10000.0);  //最大に設定する。
-  *max_y = std::max(*max_y, 10000.0);
+    try {
+      tf_listener.waitForTransform(source_pose.header.frame_id, target_frame,
+                                   source_pose.header.stamp,
+                                   ros::Duration(1.0));
+      tf_listener.transformPose(target_frame, source_pose, target_pose);
+    } catch (std::exception e) {
+      ROS_ERROR("%s", e.what());
+    }
+
+    pose_histories[(*agent_state).id].push_back(target_pose);
+
+    *min_x = std::min(*min_x, target_pose.pose.position.x);
+    *min_y = std::min(*min_y, target_pose.pose.position.y);
+    *max_x = std::max(*max_x, target_pose.pose.position.x);  //最大に設定する。
+    *max_y = std::max(*max_y, target_pose.pose.position.y);
+    *min_x = 0.0;
+    *min_y = 0.0;
+    *max_x = 10000.0;
+    *max_y = 10000.0;
+  }
 }
 
-void PedestrianLayer::change_cost(
+inline void PedestrianLayer::change_cost(
     costmap_2d::Costmap2D &master_grid,
     const geometry_msgs::PoseStamped &pose_stamped, const unsigned char &cost) {
   unsigned int mx;
   unsigned int my;
 
-  auto radius = 10;
+  const auto radius = 10;
+  const auto grid_size_x = master_grid.getSizeInCellsX();
+  const auto grid_size_y = master_grid.getSizeInCellsY();
 
-  mark_x_ = pose_stamped.pose.position.x;
-  mark_y_ = pose_stamped.pose.position.y;
+  const auto mark_x = pose_stamped.pose.position.x;
+  const auto mark_y = pose_stamped.pose.position.y;
 
-  if (!master_grid.worldToMap(mark_x_, mark_y_, mx, my)) {
-    ROS_DEBUG("Skiped");
+  if (!master_grid.worldToMap(mark_x, mark_y, mx, my)) {
+    // ROS_INFO("Skiped, mark_x = %lf, mark_y = %lf, mx = %d, my = %d",
+    //                   mark_x, mark_y, mx, my);
     return;
   }
 
@@ -93,20 +110,21 @@ void PedestrianLayer::change_cost(
       int x = mx + i - radius / 2;
       int y = my + j - radius / 2;
 
-      if (x < 0 || master_grid.getSizeInCellsX() < x) continue;
-      if (y < 0 || master_grid.getSizeInCellsY() < y) continue;
+      if (x < 0 ) continue;
+      if (y < 0 ) continue;
 
       master_grid.setCost(x, y, cost);
     }
   }
 }
 
-void PedestrianLayer::add_cost(costmap_2d::Costmap2D &master_grid,
-                               const geometry_msgs::PoseStamped &pose_stamped) {
+inline void PedestrianLayer::add_cost(
+    costmap_2d::Costmap2D &master_grid,
+    const geometry_msgs::PoseStamped &pose_stamped) {
   change_cost(master_grid, pose_stamped, LETHAL_OBSTACLE);
 }
 
-void PedestrianLayer::delete_cost(
+inline void PedestrianLayer::delete_cost(
     costmap_2d::Costmap2D &master_grid,
     const geometry_msgs::PoseStamped &pose_stamped) {
   change_cost(master_grid, pose_stamped, costmap_2d::FREE_SPACE);
@@ -115,43 +133,50 @@ void PedestrianLayer::delete_cost(
 void PedestrianLayer::updateCosts(costmap_2d::Costmap2D &master_grid, int min_i,
                                   int min_j, int max_i, int max_j) {
   if (!enabled_) return;
-  if (pose_history.size() == 0) return;
+  if (pose_histories.size() == 0) return;
 
   ros::spinOnce();
 
-  auto result = std::remove_if(pose_history.begin(), pose_history.end(),
-                               [](geometry_msgs::PoseStamped x) {
-                                 auto diff = ros::Time::now() - x.header.stamp;
-                                 return diff.toSec() > 1.0;
-                               });
+  for (auto &pose_history_map : pose_histories) {
+    auto & pose_history = pose_history_map.second;
 
-  for (auto iter = result, last = pose_history.end(); iter != last; ++iter) {
-    delete_cost(master_grid, *iter);
-  }
+    auto result = std::remove_if(pose_history.begin(), pose_history.end(),
+                                 [](geometry_msgs::PoseStamped x) {
+                                   auto diff =
+                                       ros::Time::now() - x.header.stamp;
+                                   auto capture_sec = 3.0;
 
-  pose_history.erase(result, pose_history.end());
+                                   return diff.toSec() > capture_sec;
+                                 });
 
-  auto diff_x = pose_history.end()->pose.position.x -
-                pose_history.begin()->pose.position.x;
-  auto diff_y = pose_history.end()->pose.position.y -
-                pose_history.begin()->pose.position.y;
+    for (auto iter = result, last = pose_history.end(); iter != last; ++iter) {
+      delete_cost(master_grid, *iter);
+    }
 
-  std::deque<geometry_msgs::PoseStamped> predict_deque;
+    pose_history.erase(result, pose_history.end());
 
-  for (const auto &iter : pose_history) {
-    auto pose = iter;
-    pose.pose.position.x += diff_x;
-    pose.pose.position.y += diff_y;
-    predict_deque.push_back(pose);
-  }
+    auto diff_x = pose_history.end()->pose.position.x -
+                  pose_history.begin()->pose.position.x;
+    auto diff_y = pose_history.end()->pose.position.y -
+                  pose_history.begin()->pose.position.y;
 
-  ROS_INFO("%d", pose_history.size());
+    std::deque<geometry_msgs::PoseStamped> predict_deque;
 
-  for (const auto &iter : pose_history) {
-    add_cost(master_grid, iter);
-  }
-  for (const auto &iter : predict_deque) {
-    add_cost(master_grid, iter);
+    for (const auto &iter : pose_history) {
+      auto pose = iter;
+      pose.pose.position.x += diff_x;
+      pose.pose.position.y += diff_y;
+      predict_deque.push_back(pose);
+    }
+
+    // ROS_INFO("%d", pose_history.size());
+
+    for (const auto &iter : pose_history) {
+      // add_cost(master_grid, iter);
+    }
+    for (const auto &iter : predict_deque) {
+      add_cost(master_grid, iter);
+    }
   }
 }
 

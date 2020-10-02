@@ -3,6 +3,7 @@
 #include <costmap_2d/GenericPluginConfig.h>
 #include <costmap_2d/layer.h>
 #include <costmap_2d/layered_costmap.h>
+#include <costmap_2d/costmap_layer.h>
 #include <dynamic_reconfigure/server.h>
 #include <pedsim_msgs/AgentStates.h>
 #include <ros/ros.h>
@@ -20,7 +21,7 @@
 
 namespace pedestrian_layer_namespace {
 
-class PedestrianLayer : public costmap_2d::Layer {
+class PedestrianLayer : public costmap_2d::CostmapLayer {
  public:
   PedestrianLayer();
 
@@ -42,10 +43,10 @@ class PedestrianLayer : public costmap_2d::Layer {
       costmap_2d::Costmap2D& master_grid,
       const geometry_msgs::PoseStamped& pose_stamped, const unsigned char& cost);
   
-  double mark_x_, mark_y_;
+  bool min_max_initialized_;
   pedsim_msgs::AgentStates states;
   std::deque<pedsim_msgs::AgentStates> states_history;
-  std::deque<geometry_msgs::PoseStamped> pose_history;
+  std::map<uint32_t, std::deque<geometry_msgs::PoseStamped>> pose_histories;
   ros::Subscriber imu_sub_, pedestrian_sub_;
   std::mutex m;
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>* dsrv_;
